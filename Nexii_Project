@@ -1,0 +1,132 @@
+import yaml
+import subprocess
+import os
+import wget
+import paramiko
+from scp import SCPClient
+path=r"/tmp/build_copy_script/setup_details.yaml"
+user_inputSetups={}
+build_url_SMS=raw_input("Please enter BUILD URL for SMS")
+build_url_DIRECTORS=raw_input("Please enter BUILD URL for DIRECTOR")
+
+
+class Build_copy():
+
+        def __init__(self):
+                self.pingable_IP=[]
+                self.not_pingable_IP=[]
+                self.IPs_user=[]
+                self.password=["Mi@Dim7T","Mi@Dim7T1","Mi@Dim7T2"]
+                self.director_package=""
+                self.sms_packege=""
+
+        def setup(self,path):
+                setup_selection=raw_input("Please enter \"yes\" to copy to all the available setups \"no\" to manually enter the setup details to copy ")
+                if setup_selection=="yes":
+                        with open(path,"r") as a:
+                                data=yaml.load(a)
+                                IPs=data.get("setup").values()
+                        return IPs
+
+                else:
+                        while True:
+                                user_data=raw_input("enter q to quit any time and c to continue enter enter the setup details")
+                                if user_data!="q":
+                                        key1=raw_input("enter the setup name ")
+                                        value=raw_input("enter the setup ip")
+                                        self.IPs_user.append(value)
+                                else:
+                                        print "Ips_user",self.IPs_user
+                                        return self.IPs_user
+                                        break
+        def check_ping(self,IP):
+                print "checking IPs acessibility"
+                print "check",IP
+                for i in IP:
+    #import pdb
+                        #pdb.set_trace()
+                        ping_command = "ping -c 5 -n -W 4 " + i
+                        (output, error) = subprocess.Popen(ping_command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True).communicate()
+                        if len(output) >200:
+                                 print i, 'is up!'
+                                 self.pingable_IP.append(i)
+                        else:
+                                print i, "is down!"
+                                self.not_pingable_IP.append(i)
+                print "IPs accessable {0}\n IPs not accesible {1}please check the manually".format(self.pingable_IP,self.not_pingable_IP)
+                return self.pingable_IP
+        def director_build_copy(self,build_url_DIRECTORS):
+                print "working for DIRECTOR build copy"
+                self.director_package=build_url_DIRECTORS.split("/")[-1]
+                print "diretor package",self.director_package
+                if self.director_package in os.listdir("/tmp/build_copy_script"):
+                        obj.build_setup_copy(b,self.director_package)
+
+                else:
+                        #wget_builds(self,build_url_SMS,build_url_DIRECTORS)
+                        print "downloading director package"
+                        wget.download(build_url_DIRECTORS)
+                        obj.build_setup_copy(b,self.director_package)
+        def SMS_build_copy(self,build_url_SMS):
+                print "working for SMS build copy"
+                self.sms_packege=build_url_SMS.split("/")[-1]
+                if self.sms_packege in os.listdir("/tmp/build_copy_script"):
+                        obj.build_setup_copy(b,self.sms_packege)
+
+                else:
+                        #wget_builds(self,build_url_SMS,build_url_DIRECTORS)
+                        print "downloading SMS package"
+                        wget.download(build_url_SMS)
+                        obj.build_setup_copy(b,self.sms_packege)
+
+        def build_setup_copy(self,pingable_IP,package):
+                password=["Mi@Dim7T","Mi@Dim7T1","Mi@Dim7T2","Mi@Dim7T2","Mi@Dim8T"]
+                #tem_var=0
+                ssh=paramiko.SSHClient()
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                import pdb
+                #pdb.set_trace()
+                print pingable_IP
+ ip_var=len(pingable_IP)-1
+                for i in pingable_IP:
+                        tem_var=0
+
+                        for j in password:
+                                print i,j
+                                try:
+                                        ssh.connect(i,22,"service",j)
+                                        break
+                                except Exception as err :
+                                        if err:
+                                                tem_var=tem_var+1
+                                                if tem_var==len(password):
+                                                        print "Non of default authentication worked Please check manuvally for {0}".format(i)
+                                                        break
+                                                else:
+                                                        continue
+                        if tem_var!=len(password):
+                                print "connected"
+                                with SCPClient(ssh.get_transport()) as scp:
+                                        print "before copy",i
+                        #package1='/tmp/build_copy_script/'+package
+                                scp.put("/tmp/build_copy_script/"+package, '/tmp/')
+                                print "{0} copy completed".format(package)
+#                                        scp.put('/tmp/build_copy_script/'+self.sms_packege, '/tmp/')
+ #                                       print "build sucessfully copied to :",i
+                        else:
+                                if ip_var==0:
+                                        print "none Authentication sucessded"
+                                        break
+                                else:
+                                        ip_var=ip_var-1
+                                        continue
+
+obj=Build_copy()
+a=obj.setup(path)
+print "retun",a
+b=obj.check_ping(a)
+obj.director_build_copy(build_url_DIRECTORS)
+obj.SMS_build_copy(build_url_SMS)
+#obj.build_setup_copy(b)
+
+
